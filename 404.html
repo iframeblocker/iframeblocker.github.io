@@ -23,21 +23,6 @@
       height: 100%;
       border: none;
     }
-
-    .bar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 10;
-      padding: 6px 10px;
-      font-size: 13px;
-      color: white;
-      background: rgba(0,0,0,0.6);
-      max-width: 100%;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
   </style>
 </head>
 
@@ -47,45 +32,26 @@
 
   <script>
     const frame = document.getElementById("frame");
-    const bar = document.getElementById("bar");
 
-    // Get everything after domain INCLUDING query/hash
     let fullPath = window.location.href.split(window.location.host)[1];
 
-    if (!fullPath || fullPath === "/") {
-      document.title = "404 Not Found";
-      bar.innerText = "404 Not Found";
-    } else {
+    if (fullPath && fullPath !== "/") {
       try {
+        fullPath = decodeURIComponent(fullPath.slice(1));
 
-        // Remove leading slash
-        fullPath = fullPath.slice(1);
-
-        // Decode first (in case it's already encoded)
-        let decoded = decodeURIComponent(fullPath);
-
-        // Ensure it has protocol
-        if (!decoded.startsWith("http://") && !decoded.startsWith("https://")) {
-          decoded = "https://" + decoded;
+        if (!fullPath.startsWith("http://") && !fullPath.startsWith("https://")) {
+          fullPath = "https://" + fullPath;
         }
 
-        // Encode properly for clean URL routing
-        const encoded = encodeURIComponent(decoded);
+        frame.src = fullPath;
 
-        // Replace current URL (no reload loop)
-        window.history.replaceState({}, "", "/" + encoded);
-
-        // Load iframe
-        frame.src = decoded;
-
-        // UI
-        bar.innerText = decoded;
-        document.title = decoded;
+        document.title = fullPath;
 
       } catch (e) {
-        bar.innerText = "Invalid URL";
         document.title = "Error";
       }
+    } else {
+      document.title = "404 Not Found";
     }
   </script>
 
