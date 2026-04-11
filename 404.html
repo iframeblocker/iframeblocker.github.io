@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>404 Not Found</title>
+  <title>iframe blocker</title>
 
   <style>
     html, body {
@@ -29,10 +29,10 @@
       top: 0;
       left: 0;
       z-index: 10;
-      background: rgba(0,0,0,0.6);
-      color: white;
-      font-size: 13px;
       padding: 6px 10px;
+      font-size: 13px;
+      color: white;
+      background: rgba(0,0,0,0.6);
       max-width: 100%;
       white-space: nowrap;
       overflow: hidden;
@@ -47,51 +47,40 @@
   <iframe id="frame"></iframe>
 
   <script>
-    const raw = window.location.pathname.slice(1);
+    const rawPath = window.location.pathname.slice(1);
     const frame = document.getElementById("frame");
     const bar = document.getElementById("bar");
 
-    if (!raw) {
+    if (!rawPath) {
       document.title = "404 Not Found";
       bar.innerText = "404 Not Found";
     } else {
+      try {
+        // decode raw input
+        let decoded = decodeURIComponent(rawPath);
 
-      const decoded = decodeURIComponent(raw);
-
-      let triedEncoded = false;
-
-      function load(url) {
-        bar.innerText = url;
-        document.title = url;
-        frame.src = url;
-      }
-
-      function tryFailover() {
-        if (!triedEncoded) {
-          triedEncoded = true;
-          const encoded = encodeURIComponent(decoded);
-          load(encoded);
-        } else {
-          bar.innerText = "Cannot load page";
-          document.title = "Failed";
+        // ensure protocol exists
+        if (!decoded.startsWith("http://") && !decoded.startsWith("https://")) {
+          decoded = "https://" + decoded;
         }
+
+        // encode version for clean URL display
+        const encoded = encodeURIComponent(decoded);
+
+        // 🔥 THIS is what you asked for:
+        // replace current page URL with encoded version
+        window.history.replaceState({}, "", "/" + encoded);
+
+        // load iframe
+        frame.src = decoded;
+
+        bar.innerText = decoded;
+        document.title = decoded;
+
+      } catch (e) {
+        bar.innerText = "Invalid URL";
+        document.title = "Error";
       }
-
-      // Attempt normal load first
-      load(decoded);
-
-      // If iframe fails to load, fallback after timeout
-      setTimeout(() => {
-        try {
-          // If still blank or blocked, switch
-          if (!frame.contentWindow || frame.contentWindow.length === 0) {
-            tryFailover();
-          }
-        } catch (e) {
-          tryFailover();
-        }
-      }, 1500);
-
     }
   </script>
 
