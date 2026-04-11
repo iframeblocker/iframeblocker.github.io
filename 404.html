@@ -43,7 +43,6 @@
 
 <body>
 
-  <div class="bar" id="bar">Loading...</div>
   <iframe id="frame"></iframe>
 
   <script>
@@ -74,11 +73,9 @@
         // load iframe
         frame.src = decoded;
 
-        bar.innerText = decoded;
         document.title = decoded;
 
       } catch (e) {
-        bar.innerText = "Invalid URL";
         document.title = "Error";
       }
     }
