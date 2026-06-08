@@ -3,71 +3,60 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Domain Locked Browser</title>
+<title>Domain Locked Viewer</title>
 
 <style>
 html, body {
     margin: 0;
-    width: 100%;
     height: 100%;
-    overflow: hidden;
     font-family: Arial, sans-serif;
 }
 
-#toolbar {
-    height: 50px;
+#launcher {
     display: flex;
     gap: 10px;
-    padding: 10px;
-    box-sizing: border-box;
-    border-bottom: 1px solid #ccc;
+    padding: 20px;
 }
 
 #urlInput {
     flex: 1;
-    padding: 8px;
+    padding: 10px;
     font-size: 16px;
 }
 
-#openBtn {
-    padding: 8px 16px;
+button {
+    padding: 10px 20px;
+    font-size: 16px;
     cursor: pointer;
 }
 
 #frame {
     width: 100%;
-    height: calc(100vh - 50px);
+    height: calc(100vh - 70px);
     border: none;
     display: none;
-}
-
-#message {
-    padding: 20px;
 }
 </style>
 </head>
 <body>
 
-<div id="toolbar">
+<div id="launcher">
     <input
         id="urlInput"
         type="text"
         placeholder="https://example.com"
     >
-    <button id="openBtn">Open</button>
+    <button onclick="openUrl()">Open</button>
 </div>
 
 <iframe
     id="frame"
-    sandbox="allow-scripts allow-forms allow-same-origin allow-popups"
+    sandbox="allow-scripts allow-forms allow-same-origin"
 ></iframe>
 
 <script>
-const frame = document.getElementById("frame");
-const input = document.getElementById("urlInput");
-const button = document.getElementById("openBtn");
-
 let allowedHost = null;
+const frame = document.getElementById("frame");
 
 function normalizeUrl(url) {
     if (!/^https?:\/\//i.test(url)) {
@@ -76,18 +65,16 @@ function normalizeUrl(url) {
     return url;
 }
 
-function openSite(url) {
-    try {
-        url = normalizeUrl(url);
+function loadTarget(url) {
+    url = normalizeUrl(url);
 
+    try {
         const parsed = new URL(url);
 
         allowedHost = parsed.hostname;
 
         frame.src = url;
         frame.style.display = "block";
-
-        input.value = url;
 
         history.replaceState(
             {},
@@ -100,53 +87,43 @@ function openSite(url) {
     }
 }
 
-button.addEventListener("click", () => {
-    const url = input.value.trim();
+function openUrl() {
+    const url = document.getElementById("urlInput").value.trim();
 
     if (!url) {
         alert("Enter a URL");
         return;
     }
 
-    openSite(url);
-});
+    loadTarget(url);
+}
 
-input.addEventListener("keydown", e => {
-    if (e.key === "Enter") {
-        button.click();
-    }
-});
-
-setInterval(() => {
-    if (!allowedHost) return;
-
+frame.addEventListener("load", () => {
     try {
-        const currentHost =
+        const current =
             frame.contentWindow.location.hostname;
 
-        if (
-            currentHost &&
-            currentHost !== allowedHost
-        ) {
-            console.warn(
-                "Blocked navigation to:",
-                currentHost
+        if (current !== allowedHost) {
+            alert(
+                "Navigation outside allowed domain blocked."
             );
 
-            frame.contentWindow.history.back();
+            frame.src =
+                new URLSearchParams(location.search)
+                .get("url");
         }
-    } catch (err) {
-        // Most external websites become cross-origin.
-        // Browser security prevents inspection.
+    } catch (e) {
+        // Cross-origin iframe.
+        // Browser won't let us inspect it.
     }
-}, 500);
+});
 
 const initial =
-    new URLSearchParams(location.search)
-        .get("url");
+    new URLSearchParams(location.search).get("url");
 
 if (initial) {
-    openSite(initial);
+    document.getElementById("urlInput").value = initial;
+    loadTarget(initial);
 }
 </script>
 
