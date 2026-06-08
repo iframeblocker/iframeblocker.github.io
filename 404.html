@@ -1,63 +1,131 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>404</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Domain Locked Viewer</title>
 
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      background: black;
-      overflow: hidden;
-    }
+<style>
+html, body {
+    margin: 0;
+    height: 100%;
+    font-family: Arial, sans-serif;
+}
 
-    iframe {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-  </style>
+#launcher {
+    display: flex;
+    gap: 10px;
+    padding: 20px;
+}
+
+#urlInput {
+    flex: 1;
+    padding: 10px;
+    font-size: 16px;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+#frame {
+    width: 100%;
+    height: calc(100vh - 70px);
+    border: none;
+    display: none;
+}
+</style>
 </head>
-
 <body>
 
-  <iframe
-  id="frame"
-  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
-  allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+<div id="launcher">
+    <input
+        id="urlInput"
+        type="text"
+        placeholder="https://example.com"
+    >
+    <button onclick="openUrl()">Open</button>
+</div>
+
+<iframe
+    id="frame"
+    sandbox="allow-scripts allow-forms allow-same-origin"
 ></iframe>
 
-  <script>
-    const frame = document.getElementById("frame");
+<script>
+let allowedHost = null;
+const frame = document.getElementById("frame");
 
-    let fullPath = window.location.href.split(window.location.host)[1];
-
-    if (fullPath && fullPath !== "/") {
-      try {
-        fullPath = decodeURIComponent(fullPath.slice(1));
-
-        if (!fullPath.startsWith("http://") && !fullPath.startsWith("https://")) {
-          fullPath = "https://" + fullPath;
-        }
-
-        frame.src = fullPath;
-
-        document.title = fullPath;
-
-      } catch (e) {
-        document.title = "Error";
-      }
-    } else {
-      document.title = "404 Not Found";
+function normalizeUrl(url) {
+    if (!/^https?:\/\//i.test(url)) {
+        url = "https://" + url;
     }
-  </script>
+    return url;
+}
+
+function loadTarget(url) {
+    url = normalizeUrl(url);
+
+    try {
+        const parsed = new URL(url);
+
+        allowedHost = parsed.hostname;
+
+        frame.src = url;
+        frame.style.display = "block";
+
+        history.replaceState(
+            {},
+            "",
+            "?url=" + encodeURIComponent(url)
+        );
+
+    } catch {
+        alert("Invalid URL");
+    }
+}
+
+function openUrl() {
+    const url = document.getElementById("urlInput").value.trim();
+
+    if (!url) {
+        alert("Enter a URL");
+        return;
+    }
+
+    loadTarget(url);
+}
+
+frame.addEventListener("load", () => {
+    try {
+        const current =
+            frame.contentWindow.location.hostname;
+
+        if (current !== allowedHost) {
+            alert(
+                "Navigation outside allowed domain blocked."
+            );
+
+            frame.src =
+                new URLSearchParams(location.search)
+                .get("url");
+        }
+    } catch (e) {
+        // Cross-origin iframe.
+        // Browser won't let us inspect it.
+    }
+});
+
+const initial =
+    new URLSearchParams(location.search).get("url");
+
+if (initial) {
+    document.getElementById("urlInput").value = initial;
+    loadTarget(initial);
+}
+</script>
 
 </body>
 </html>
